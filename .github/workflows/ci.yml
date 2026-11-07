@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  schedule:
+    - cron: '0 23 * * 0' # Senin 06.00 WIB: cek celah dependensi baru
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, openssl
+          coverage: none
+
+      - name: Install dependensi
+        run: composer update --no-interaction --prefer-dist --no-progress
+
+      - name: Test
+        run: vendor/bin/phpunit
+
+      - name: Celah keamanan dependensi
+        run: composer audit --abandoned=ignore
