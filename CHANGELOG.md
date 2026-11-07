@@ -3,6 +3,12 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/),
 versi mengikuti [SemVer](https://semver.org/lang/id/).
 
+## [1.0.1] - 2026-11-07
+
+### Diubah
+- Lisensi menjadi MIT (sebelumnya `proprietary`); berkas `LICENSE` ditambahkan.
+- README: repo publik, tidak perlu token GitHub.
+
 ## [1.0.0] - 2026-11-07
 
 ### Ditambahkan

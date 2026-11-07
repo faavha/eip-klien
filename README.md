@@ -95,3 +95,7 @@ composer install && vendor/bin/phpunit
 
 Rilis: perbarui `CHANGELOG.md`, `git tag vX.Y.Z && git push --tags`, lalu
 `composer update fmipa/eip-klien` di tiap aplikasi.
+
+## Lisensi
+
+MIT — lihat [LICENSE](LICENSE).

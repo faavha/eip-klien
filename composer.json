@@ -2,7 +2,7 @@
     "name": "fmipa/eip-klien",
     "description": "Klien EIP Core FMIPA UNS untuk aplikasi Laravel: login SSO (OIDC + PKCE), API master/akses, peran, tombol Aplikasi, banding peran.",
     "type": "library",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^8.3",
         "firebase/php-jwt": "^7.0",
