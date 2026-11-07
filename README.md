@@ -21,8 +21,7 @@ model lokal, dan pesan penolakan — lewat `Contracts\PenanganLogin`.
 "require": { "fmipa/eip-klien": "^1.0" }
 ```
 
-Server butuh akses baca ke repo privat ini sekali saja:
-`composer config -g github-oauth.github.com <token-baca-saja>`.
+lalu `composer update fmipa/eip-klien`. Repo publik: server tidak perlu token GitHub.
 
 ### `.env`
 
