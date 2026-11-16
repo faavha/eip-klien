@@ -1,5 +1,6 @@
 {{-- Riwayat "Masuk sebagai" (ADR 0019 D). Hanya untuk admin; aplikasi yang
-     menjaga akses halamannya. <x-eip-klien::riwayat-masuk-sebagai class="tabel" /> --}}
+     menjaga akses halamannya. <x-eip-klien::riwayat-masuk-sebagai class="tabel" />
+     Sel diberi data-label supaya cocok dengan tabel bertumpuk di layar kecil. --}}
 @props(['batas' => 100])
 @php
     $eipRiwayat = \Fmipa\EipKlien\ImpersonasiLog::query()->latest('mulai_at')->latest('id')->limit((int) $batas)->get();
@@ -9,31 +10,34 @@
 <table {{ $attributes->merge(['data-eip-riwayat-masuk-sebagai' => true]) }}>
     <thead>
         <tr>
-            <th>Mulai</th>
-            <th>Pelaku</th>
-            <th>Masuk sebagai</th>
-            <th>Alasan</th>
-            <th>Selesai</th>
-            <th>IP</th>
+            <th scope="col">Mulai</th>
+            <th scope="col">Admin</th>
+            <th scope="col">Masuk sebagai</th>
+            <th scope="col">Alasan</th>
+            <th scope="col">Selesai</th>
+            <th scope="col">IP</th>
         </tr>
     </thead>
     <tbody>
         @forelse ($eipRiwayat as $baris)
+            @php
+                $eipHabis = $baris->mulai_at->copy()->addMinutes($eipMenit);
+            @endphp
             <tr>
-                <td>{{ $baris->mulai_at->format('d/m/Y H:i') }}</td>
-                <td>{{ $baris->pelaku_nama }}</td>
-                <td>{{ $baris->target_nama }}</td>
-                <td>{{ $baris->alasan }}</td>
-                <td>
+                <td data-label="Mulai" style="white-space:nowrap">{{ $baris->mulai_at->format('d/m/Y H:i') }}</td>
+                <td data-label="Admin">{{ $baris->pelaku_nama }}</td>
+                <td data-label="Masuk sebagai">{{ $baris->target_nama }}</td>
+                <td data-label="Alasan">{{ $baris->alasan }}</td>
+                <td data-label="Selesai" style="white-space:nowrap">
                     @if ($baris->selesai())
                         {{ $baris->selesai_at->format('H:i') }} · {{ $eipCara[$baris->cara_selesai] ?? $baris->cara_selesai }}
-                    @elseif ($baris->mulai_at->copy()->addMinutes($eipMenit)->isPast())
-                        ditinggal (habis {{ $baris->mulai_at->copy()->addMinutes($eipMenit)->format('H:i') }})
+                    @elseif ($eipHabis->isPast())
+                        Ditinggal (habis {{ $eipHabis->format('H:i') }})
                     @else
-                        berlangsung
+                        Berlangsung
                     @endif
                 </td>
-                <td>{{ $baris->ip }}</td>
+                <td data-label="IP">{{ $baris->ip }}</td>
             </tr>
         @empty
             <tr>

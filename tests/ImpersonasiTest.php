@@ -319,6 +319,8 @@ class ImpersonasiTest extends TestCase
 
         $this->assertSame('', trim(Blade::render('<x-eip-klien::banner-menyamar />')));
         $this->assertStringContainsString('value="Testing"', $tombol($this->biasa));
+        $this->assertStringContainsString('<dialog', $tombol($this->biasa));
+        $this->assertStringContainsString('Laboran Biasa', $tombol($this->biasa));
         $this->assertStringContainsString('/pengguna/'.$this->biasa->id.'/masuk-sebagai', $tombol($this->biasa));
         $this->assertSame('', trim($tombol($this->admin2)));
         $this->assertSame('', trim($tombol($this->nonaktif)));
@@ -331,6 +333,7 @@ class ImpersonasiTest extends TestCase
 
         $riwayat = Blade::render('<x-eip-klien::riwayat-masuk-sebagai />');
         $this->assertStringContainsString('Testing', $riwayat);
-        $this->assertStringContainsString('berlangsung', $riwayat);
+        $this->assertStringContainsString('Berlangsung', $riwayat);
+        $this->assertStringContainsString('data-label="Alasan"', $riwayat);
     }
 }

@@ -3,6 +3,17 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/),
 versi mengikuti [SemVer](https://semver.org/lang/id/).
 
+## [1.1.1] - 2026-11-16
+
+### Diperbaiki
+- Migrasi `impersonasi_log` selalu didaftarkan (tidak bergantung
+  `impersonasi.aktif`): `migrate` dengan cache config lama sempat
+  melewatkannya saat fitur pertama dinyalakan.
+- Form alasan "Masuk sebagai" tampil di `<dialog>` di tengah layar, bukan
+  popup absolut yang terpotong tabel bergulir; nama target ditampilkan; isi
+  slot boleh menggantikan label (mis. ikon + teks).
+- Tabel riwayat memberi `data-label` per sel (tabel bertumpuk di layar kecil).
+
 ## [1.1.0] - 2026-11-16
 
 ### Ditambahkan

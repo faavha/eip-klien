@@ -37,6 +37,10 @@ class EipKlienServiceProvider extends ServiceProvider
             $this->loadRoutesFrom(__DIR__.'/../routes/eip-klien.php');
         }
 
+        // Selalu didaftarkan (tabel kosong tidak berbahaya): bila didaftarkan
+        // hanya saat `aktif`, `migrate` dengan cache config lama melewatkannya.
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         if (config('eip-klien.impersonasi.aktif', false)) {
             $this->bootImpersonasi();
         }
@@ -49,7 +53,6 @@ class EipKlienServiceProvider extends ServiceProvider
     /** "Masuk sebagai" (ADR 0019) — hanya bila aplikasi menyalakannya. */
     private function bootImpersonasi(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/impersonasi.php');
 
         // Lewat Kernel, bukan Router: Kernel menyalin ulang grupnya ke Router
