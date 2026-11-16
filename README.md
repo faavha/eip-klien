@@ -9,6 +9,7 @@ Paket Laravel bersama untuk semua aplikasi FMIPA yang memakai **EIP Core**:
 | Peran | `PeranEip` | peran + unit lingkup dari klaim token atau `/akses` (ADR 0017) |
 | Tombol "Aplikasi" | `PengalihAplikasi` | daftar aplikasi pegawai dari EIP, cache, cadangan bila EIP mati |
 | Peralihan peran | `php artisan eip:banding-peran` | bandingkan peran lokal vs EIP (baca saja) |
+| Masuk sebagai | `Impersonasi`, komponen `<x-eip-klien::…>` | impersonate admin seragam (ADR 0019), mati bawaan |
 
 Yang **tetap di aplikasi**: membuat/mencocokkan akun `User`, menyalin peran ke
 model lokal, dan pesan penolakan — lewat `Contracts\PenanganLogin`.
@@ -80,6 +81,33 @@ Daftar cadangan diisi di `eip-klien.pengalih.minimal` (EIP Core selalu ada).
 
 Daftarkan `Contracts\PeranLokal` (kode peran + email => peran lokal), lalu
 jalankan `php artisan eip:banding-peran` di server sebelum login dialihkan.
+
+### "Masuk sebagai" (ADR 0019)
+
+Admin masuk sebagai pengguna lain paling lama 25 menit, dengan alasan
+(bawaan "Testing") dan jejak di tabel `impersonasi_log`. Paket menolak: diri
+sendiri, berantai, target yang dilindungi/nonaktif, dan pelaku yang peran
+adminnya tidak ada di EIP (dicek ulang tanpa cache; EIP mati = ditolak).
+
+1. Ikat aturan aplikasi:
+   ```php
+   $this->app->bind(\Fmipa\EipKlien\Contracts\AturanImpersonasi::class, \App\Auth\AturanImpersonasi::class);
+   ```
+2. Nyalakan di `config/eip-klien.php` (blok `impersonasi`): `aktif`,
+   `peran_pelaku`, `beranda`, `route_keluar`, `diblokir` (tambahkan route
+   pengguna/pengaturan aplikasi), `flash`. Lalu `php artisan migrate`.
+3. Pasang komponen:
+   ```blade
+   <x-eip-klien::banner-menyamar />                          {{-- sekali, di layout --}}
+   <x-eip-klien::tombol-masuk-sebagai :pengguna="$u" />       {{-- per baris pengguna --}}
+   <x-eip-klien::riwayat-masuk-sebagai class="tabel" />       {{-- halaman admin --}}
+   ```
+
+Middleware `JagaImpersonasi` dipasang otomatis di grup `web`: kembali ke akun
+asli saat waktu habis, menolak route `diblokir`, dan saat route logout
+dipanggil menghentikan penyamaran dulu sehingga akun asli ikut keluar.
+Penanda jejak data aplikasi: `app(Impersonasi::class)->pelakuId()`.
+Tampilan bisa diubah: `php artisan vendor:publish --tag=eip-klien-views`.
 
 ## Pengaturan lain (`config/eip-klien.php`)
 

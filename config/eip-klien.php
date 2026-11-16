@@ -48,4 +48,25 @@ return [
         // Daftar cadangan bila EIP tak terjangkau (EIP Core selalu ditambahkan).
         'minimal' => [],
     ],
+
+    // "Masuk sebagai" (ADR 0019). Mati bawaan; aplikasi menyalakan setelah
+    // mengikat Contracts\AturanImpersonasi dan menjalankan migrasi.
+    'impersonasi' => [
+        'aktif' => false,
+        // Batas satu sesi menyamar (menit) sebelum otomatis kembali.
+        'menit' => 25,
+        // Kode peran EIP pelaku; dicek ulang ke EIP tanpa cache saat mulai.
+        'peran_pelaku' => ['admin'],
+        'alasan_bawaan' => 'Testing',
+        'middleware' => ['web', 'auth'],
+        'path_mulai' => '/pengguna/{pengguna}/masuk-sebagai',
+        'path_berhenti' => '/berhenti-menyamar',
+        // Nama route beranda (tujuan setelah mulai/berhenti) dan logout aplikasi.
+        'beranda' => 'dashboard',
+        'route_keluar' => 'logout',
+        // Pola nama route yang ditolak selama menyamar (Request::routeIs).
+        'diblokir' => ['eip.impersonasi.mulai'],
+        // Kunci flash pesan sukses/gagal yang ditampilkan layout aplikasi.
+        'flash' => ['sukses' => 'success', 'gagal' => 'error'],
+    ],
 ];

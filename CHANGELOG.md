@@ -3,6 +3,19 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/),
 versi mengikuti [SemVer](https://semver.org/lang/id/).
 
+## [1.1.0] - 2026-11-16
+
+### Ditambahkan
+- "Masuk sebagai" (ADR 0019), mati bawaan (`eip-klien.impersonasi.aktif`):
+  `Impersonasi`, `Contracts\AturanImpersonasi`, route
+  `eip.impersonasi.mulai` / `eip.impersonasi.berhenti`, middleware
+  `JagaImpersonasi` (batas 25 menit, route terblokir, logout = keluar dari
+  akun asli), migrasi + model `impersonasi_log` (tidak bisa diubah/dihapus),
+  komponen `banner-menyamar`, `tombol-masuk-sebagai`, `riwayat-masuk-sebagai`.
+- Peran pelaku dicek ulang ke EIP `/akses` tanpa cache saat mulai.
+- Ketergantungan `illuminate/auth`, `illuminate/database`, `illuminate/view`
+  (sudah ada di setiap aplikasi Laravel).
+
 ## [1.0.1] - 2026-11-07
 
 ### Diubah
