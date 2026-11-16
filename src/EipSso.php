@@ -2,10 +2,7 @@
 
 namespace Fmipa\EipKlien;
 
-use Firebase\JWT\JWK;
-use Firebase\JWT\JWT;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -26,6 +23,8 @@ use RuntimeException;
  */
 class EipSso
 {
+    public function __construct(private readonly KunciEip $kunci) {}
+
     /** @return array{url: string, state: string, nonce: string, verifier: string} */
     public function alamatLogin(): array
     {
@@ -34,7 +33,7 @@ class EipSso
         $verifier = Str::random(64);
         $challenge = rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
 
-        $url = $this->discovery()['authorization_endpoint'].'?'.http_build_query([
+        $url = $this->kunci->discovery()['authorization_endpoint'].'?'.http_build_query([
             'client_id' => $this->clientId(),
             'redirect_uri' => $this->redirectUri(),
             'response_type' => 'code',
@@ -51,7 +50,7 @@ class EipSso
     /** @return array<string, mixed> respons token dari EIP (berisi id_token) */
     public function tukarKode(string $code, string $verifier): array
     {
-        $res = $this->http()->asForm()->post($this->discovery()['token_endpoint'], [
+        $res = $this->http()->asForm()->post($this->kunci->discovery()['token_endpoint'], [
             'grant_type' => 'authorization_code',
             'client_id' => $this->clientId(),
             'client_secret' => config('eip-klien.client_secret'),
@@ -74,15 +73,8 @@ class EipSso
      */
     public function bacaIdToken(string $idToken, string $nonce): array
     {
-        JWT::$leeway = 60; // toleransi beda jam antar server (detik)
-
-        try {
-            $klaim = (array) JWT::decode($idToken, JWK::parseKeySet($this->jwks(), 'RS256'));
-        } catch (\Throwable) {
-            // Kunci EIP mungkin baru dirotasi: ambil ulang JWKS sekali lagi.
-            Cache::forget('eip.sso.jwks');
-            $klaim = (array) JWT::decode($idToken, JWK::parseKeySet($this->jwks(), 'RS256'));
-        }
+        // Tanda tangan (JWKS, hanya RS256) + exp/nbf/iat, toleransi 60 detik.
+        $klaim = $this->kunci->dekode($idToken, 60);
 
         $aud = (array) ($klaim['aud'] ?? []);
         $periksa = [
@@ -98,8 +90,7 @@ class EipSso
             }
         }
 
-        // Ubah objek bertingkat (stdClass) menjadi array biasa.
-        return json_decode(json_encode($klaim), true);
+        return $klaim;
     }
 
     /** Alamat logout terpusat di EIP (keluar dari semua aplikasi FMIPA). */
@@ -107,46 +98,13 @@ class EipSso
     {
         $kembaliKe ??= route((string) config('eip-klien.sso.setelah_logout', 'login'));
 
-        return ($this->discovery()['end_session_endpoint'] ?? $this->issuer().'/oauth/logout')
+        return ($this->kunci->discovery()['end_session_endpoint'] ?? $this->issuer().'/oauth/logout')
             .'?'.http_build_query(['post_logout_redirect_uri' => $kembaliKe]);
-    }
-
-    /** @return array<string, mixed> */
-    private function discovery(): array
-    {
-        return Cache::remember('eip.sso.discovery', now()->addHour(), function () {
-            $res = $this->http()->get($this->issuer().'/.well-known/openid-configuration');
-
-            // Bila web server EIP belum meneruskan /.well-known/ (404), pakai
-            // alamat bawaan EIP. Keamanan tidak berkurang: ID token tetap
-            // diverifikasi dengan kunci publik (JWKS) EIP.
-            if ($res->status() === 404) {
-                return [
-                    'authorization_endpoint' => $this->issuer().'/oauth/authorize',
-                    'token_endpoint' => $this->issuer().'/oauth/token',
-                    'jwks_uri' => $this->issuer().'/oauth/jwks',
-                    'end_session_endpoint' => $this->issuer().'/oauth/logout',
-                ];
-            }
-            if (! $res->successful()) {
-                throw new RuntimeException('Tidak bisa menghubungi EIP (discovery HTTP '.$res->status().').');
-            }
-
-            return $res->json();
-        });
-    }
-
-    /** @return array<string, mixed> */
-    private function jwks(): array
-    {
-        return Cache::remember('eip.sso.jwks', now()->addHour(), function () {
-            return $this->http()->get($this->discovery()['jwks_uri'])->throw()->json();
-        });
     }
 
     public function issuer(): string
     {
-        return rtrim((string) (config('eip-klien.issuer') ?: config('eip-klien.base_url')), '/');
+        return $this->kunci->issuer();
     }
 
     private function clientId(): string
@@ -161,6 +119,6 @@ class EipSso
 
     private function http(): PendingRequest
     {
-        return Http::ke($this->issuer());
+        return $this->kunci->http();
     }
 }

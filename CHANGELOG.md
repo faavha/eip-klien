@@ -3,6 +3,24 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/),
 versi mengikuti [SemVer](https://semver.org/lang/id/).
 
+## [1.2.0] - 2026-11-16
+
+### Ditambahkan
+- Endpoint status `GET /eip-klien/status` (route `eip-klien.status`) untuk
+  Peta Sistem EIP: versi paket/Laravel/PHP, env + debug, commit tayang
+  (`REVISION` atau `.git` tanpa exec), detak cron, migrasi tertunda, jumlah
+  error log 24 jam, antrean gagal. Tanpa sesi/CSRF, di-throttle, bisa
+  dimatikan (`eip-klien.status.aktif`).
+- Autentikasi endpoint dengan JWT RS256 dari EIP (kunci OIDC, JWKS): iss,
+  aud = kode aplikasi, sub `peta-sistem`, umur ≤ 5 menit, jti sekali pakai.
+- Detak scheduler `eip-klien:detak` tiap menit (cache `eip-klien:detak`).
+- `KunciEip`: discovery, JWKS, dan verifikasi tanda tangan bersama untuk SSO
+  dan endpoint status.
+
+### Diubah
+- `EipSso` memakai `KunciEip`; pengambilan ulang JWKS saat tanda tangan
+  gagal dibatasi sekali per menit.
+
 ## [1.1.1] - 2026-11-16
 
 ### Diperbaiki

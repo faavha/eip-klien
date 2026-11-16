@@ -10,6 +10,7 @@ Paket Laravel bersama untuk semua aplikasi FMIPA yang memakai **EIP Core**:
 | Tombol "Aplikasi" | `PengalihAplikasi` | daftar aplikasi pegawai dari EIP, cache, cadangan bila EIP mati |
 | Peralihan peran | `php artisan eip:banding-peran` | bandingkan peran lokal vs EIP (baca saja) |
 | Masuk sebagai | `Impersonasi`, komponen `<x-eip-klien::…>` | impersonate admin seragam (ADR 0019), mati bawaan |
+| Endpoint status | route `eip-klien.status`, `PengumpulStatus` | kondisi aplikasi untuk Peta Sistem EIP (versi, cron, debug, migrasi, error) |
 
 Yang **tetap di aplikasi**: membuat/mencocokkan akun `User`, menyalin peran ke
 model lokal, dan pesan penolakan — lewat `Contracts\PenanganLogin`.
@@ -108,6 +109,47 @@ asli saat waktu habis, menolak route `diblokir`, dan saat route logout
 dipanggil menghentikan penyamaran dulu sehingga akun asli ikut keluar.
 Penanda jejak data aplikasi: `app(Impersonasi::class)->pelakuId()`.
 Tampilan bisa diubah: `php artisan vendor:publish --tag=eip-klien-views`.
+
+## Endpoint status
+
+`GET /eip-klien/status` (route `eip-klien.status`) melaporkan kondisi aplikasi
+ke halaman **Peta Sistem** di EIP. Aktif bawaan; matikan dengan
+`eip-klien.status.aktif = false`. Tanpa sesi/CSRF, di-throttle
+(`status.middleware`, bawaan `throttle:30,1`).
+
+**Autentikasi tanpa secret baru.** EIP mengirim `Authorization: Bearer <JWT>`
+yang ditandatangani kunci OIDC EIP (kunci yang sama dengan ID token). Paket
+memeriksanya dengan JWKS EIP (cache + `EIP_RESOLVE_IP` sama dengan SSO):
+hanya RS256; `iss` = issuer EIP; `aud` = `EIP_KODE_APLIKASI`; `sub` =
+`peta-sistem`; umur (`exp − iat`) paling lama 5 menit, toleransi jam 30 detik;
+`jti` wajib dan sekali pakai. Gagal → `401 {"pesan": "Tidak diizinkan."}`.
+Jadi `EIP_KODE_APLIKASI` **wajib** terisi dan sama dengan kode aplikasi di EIP.
+
+Isi respons (tanpa secret, isi log, atau path absolut):
+
+| Kunci | Isi |
+|---|---|
+| `kode`, `paket_versi`, `laravel`, `php` | kode aplikasi, versi eip-klien, Laravel, PHP |
+| `app_env`, `app_debug` | lingkungan dan APP_DEBUG (bool) |
+| `commit`, `commit_waktu` | dari berkas `REVISION` (baris 1 hash, baris 2 opsional waktu ISO; bila tak ada, mtime berkas), atau dibaca langsung dari `.git` (tanpa menjalankan git); null bila keduanya tak ada |
+| `cron_detak_terakhir` | waktu terakhir `schedule:run` berjalan (ISO 8601) atau null |
+| `migrasi_tertunda` | jumlah migrasi (aplikasi + paket) yang belum dijalankan |
+| `error_24jam` | baris log ERROR/CRITICAL/ALERT/EMERGENCY 24 jam terakhir dari `laravel.log` dan `laravel-YYYY-MM-DD.log` hari ini/kemarin (hanya ±2 MB terakhir tiap berkas) |
+| `antrian_gagal` | jumlah baris `failed_jobs` (null bila tabel tak ada) |
+| `waktu_server` | jam server |
+
+Bagian yang gagal dibaca bernilai `null`.
+
+**Detak cron.** Paket menambah tugas ringan `eip-klien:detak` tiap menit ke
+scheduler aplikasi (menulis waktu ke cache `eip-klien:detak`). Tidak perlu
+mengubah `routes/console.php`; aplikasi tanpa cron cukup melaporkan null.
+Matikan dengan `status.detak = false`. Cache aplikasi harus bersama antara
+CLI dan web (driver `file`/`database`/`redis`, bukan `array`).
+
+**Aplikasi tanpa `.git` di server** (dikirim lewat `git archive`): skrip
+deploy menulis `REVISION` di root aplikasi, mis.
+`{ git rev-parse HEAD; date -Iseconds; } | ssh … "cat > <root>/REVISION"`.
+Masukkan `REVISION` ke `.gitignore`.
 
 ## Pengaturan lain (`config/eip-klien.php`)
 

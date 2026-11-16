@@ -49,6 +49,16 @@ return [
         'minimal' => [],
     ],
 
+    // Endpoint status untuk Peta Sistem EIP: GET /eip-klien/status.
+    // Hanya menjawab token JWT dari EIP (kunci OIDC EIP, aud = kode_aplikasi).
+    'status' => [
+        'aktif' => true,
+        // Tanpa `web` (sesi/CSRF); throttle per IP.
+        'middleware' => ['throttle:30,1'],
+        // Detak scheduler tiap menit ke cache (untuk memantau cron).
+        'detak' => true,
+    ],
+
     // "Masuk sebagai" (ADR 0019). Mati bawaan; aplikasi menyalakan setelah
     // mengikat Contracts\AturanImpersonasi dan menjalankan migrasi.
     'impersonasi' => [

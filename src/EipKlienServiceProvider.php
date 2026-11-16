@@ -4,6 +4,7 @@ namespace Fmipa\EipKlien;
 
 use Fmipa\EipKlien\Console\BandingPeranCommand;
 use Fmipa\EipKlien\Http\JagaImpersonasi;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +19,7 @@ class EipKlienServiceProvider extends ServiceProvider
         $this->app->singleton(EipSso::class);
         $this->app->singleton(PengalihAplikasi::class);
         $this->app->singleton(Impersonasi::class);
+        $this->app->singleton(KunciEip::class);
     }
 
     public function boot(): void
@@ -41,6 +43,10 @@ class EipKlienServiceProvider extends ServiceProvider
         // hanya saat `aktif`, `migrate` dengan cache config lama melewatkannya.
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
+        if (config('eip-klien.status.aktif', true)) {
+            $this->bootStatus();
+        }
+
         if (config('eip-klien.impersonasi.aktif', false)) {
             $this->bootImpersonasi();
         }
@@ -48,6 +54,25 @@ class EipKlienServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([BandingPeranCommand::class]);
         }
+    }
+
+    /** Endpoint status (Peta Sistem EIP) + detak scheduler. */
+    private function bootStatus(): void
+    {
+        $this->loadRoutesFrom(__DIR__.'/../routes/status.php');
+
+        if (! config('eip-klien.status.detak', true)) {
+            return;
+        }
+
+        // Hanya berjalan saat Schedule dibuat (schedule:run/list); aplikasi
+        // tanpa scheduler tidak terpengaruh. Callback ringan, bernama sendiri,
+        // tanpa withoutOverlapping, jadi tidak berbagi mutex dengan tugas lain.
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            $schedule->call(fn () => app(PengumpulStatus::class)->catatDetak())
+                ->everyMinute()
+                ->name('eip-klien:detak');
+        });
     }
 
     /** "Masuk sebagai" (ADR 0019) — hanya bila aplikasi menyalakannya. */
